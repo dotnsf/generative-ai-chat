@@ -10,7 +10,9 @@ var express = require( 'express' ),
 require( 'dotenv' ).config();
 
 // Test Prompts
-var instruction = "[INST] <<SYS>>\nYou are a friendly, respectful and honest friend. Always answer as friendly as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature. Also try to ask something for me, not try to help me.\n\nIf a question does not make any sense, or is not factually coherent, tell that you don't understand that well. If you don't know the answer to a question, please don't share false information.\n\nYou are an English speaker.\nIf you are asked a question in Japanese, please answer that you don't understand Japanese, and if you are asked a question in English, please answer in English.\n\nThe user is at beginner level of English, so please answer in easy and SHORT English sentence as much as possible. Also you don't speak so much.\n\nHave [Past Conversation] in your mind. Answer the bottom [User] section, but in 80 words.\n</SYS>>\n[/INST]\n"
+//var instruction = "[INST] <<SYS>>\nYou are a friendly, respectful and honest friend. Always answer as friendly as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature. Also try to ask something for me, not try to help me.\n\nIf a question does not make any sense, or is not factually coherent, tell that you don't understand that well. If you don't know the answer to a question, please don't share false information.\n\nYou are an English speaker.\nIf you are asked a question in Japanese, please answer that you don't understand Japanese, and if you are asked a question in English, please answer in English.\n\nThe user is at beginner level of English, so please answer in easy and SHORT English sentence as much as possible. Also you don't speak so much.\n\nHave [Past Conversation] in your mind. Answer the bottom [User] section, but in 80 words.\n</SYS>>\n[/INST]\n"
+var instruction = 'WATSONX_INSTRUCTION' in process.env ? process.env.WATSONX_INSTRUCTION : '';
+instruction = instruction.split( "\\n" ).join( "\n" );
 var user_input = "[User] "
 var answer_output = "\n[Friendly Assistant] \n"
 
@@ -116,9 +118,11 @@ async function generateText( access_token, project_id, model_id, pc, input, max_
             'Accept': 'application/json'
           }
         });
+        var t = instruction + "\n[Past Conversation]\n" + pc + "\n[/Past Conversation]\n" + user_input + input + answer_output;
+        console.log( {t} );
         var data = {
           'model_id': model_id,
-          'input': instruction + "\n[Past Conversation]\n" + pc + "\n[/Past Conversation]\n" + user_input + input + answer_output,
+          'input': t, //instruction + "\n[Past Conversation]\n" + pc + "\n[/Past Conversation]\n" + user_input + input + answer_output,
           'parameters': {
             "decoding_method": "greedy",
             "max_new_tokens": max_new_tokens,
