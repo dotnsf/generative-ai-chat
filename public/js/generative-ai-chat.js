@@ -1,6 +1,8 @@
 var flag_speech = 0;
 var flag_debug = false;
 
+var flag_editable = false;
+
 function vr_function(){
   $('#start_btn').removeClass( 'btn-primary btn-warning' );
   $('#start_btn').addClass( 'btn-danger' );
@@ -83,13 +85,15 @@ function AiChat( text ){
     url: '/api/generate_text',
     data: { pc: conversation, input: text, ai: ai, model_id: model_id },
     success: function( result ){
-      conversation += "[User] " + text + "\n";
+      //conversation += "[User] " + text + "\n";
+      conversation += "[User] " + text + " [/User]\n";
       obj.remove();
       obj = null;
       //console.log( { result } );
       if( result && result.status ){
         var ai_text = result.generated_text;
-        conversation += "[Friendly Assistant]" + ai_text + "\n";
+        //conversation += "[Friendly Assistant]" + ai_text + "\n";
+        conversation += "[Friendly Assistant] " + ai_text + " [/Friendly Assistant]\n";
         if( ai_text ){
           $('#result_texts').append( '<div class="balloon-r">' + ai_text + '</div>' );
           speechText( ai_text );
@@ -105,11 +109,30 @@ function AiChat( text ){
       $('#start_btn').removeClass( 'btn-warning btn-danger' );
       $('#start_btn').addClass( 'btn-primary' );
       $('#start_btn').val( '<i class="fas fa-comment-alt"></i>' );
+
+      $('#result_text').css( 'display', 'block' );
     }
   })
 }
 
 $(function(){
+  $('#result_text').mouseup( function( e ){
+    if( e.which == 3 ){   //. テキストエリア上で右クリック
+      flag_editable = !flag_editable;
+
+      if( flag_editable ){
+        $('#result_text').attr( 'readonly', false );
+      }else{
+        $('#result_text').attr( 'readonly', true );
+
+        var text = $('#result_text').val();
+        $('#result_text').val( '' );
+        $('#result_texts').html( '<div class="balloon-l">' + text + '</div>' );
+        $('#result_text').css( 'display', 'none' );
+        AiChat( text );
+      }
+    }
+  });
 });
 
 var uttr = null;
@@ -146,4 +169,6 @@ function speechEnd( evt ){
   $('#start_btn').removeClass( 'btn-warning btn-danger' );
   $('#start_btn').addClass( 'btn-primary' );
   $('#start_btn').val( '<i class="fas fa-comment-alt"></i>' );
+
+  $('#result_text').css( 'display', 'block' );
 }

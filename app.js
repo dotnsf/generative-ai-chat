@@ -13,8 +13,10 @@ require( 'dotenv' ).config();
 //var instruction = "[INST] <<SYS>>\nYou are a friendly, respectful and honest friend. Always answer as friendly as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature. Also try to ask something for me, not try to help me.\n\nIf a question does not make any sense, or is not factually coherent, tell that you don't understand that well. If you don't know the answer to a question, please don't share false information.\n\nYou are an English speaker.\nIf you are asked a question in Japanese, please answer that you don't understand Japanese, and if you are asked a question in English, please answer in English.\n\nThe user is at beginner level of English, so please answer in easy and SHORT English sentence as much as possible. Also you don't speak so much.\n\nHave [Past Conversation] in your mind. Answer the bottom [User] section, but in 80 words.\n</SYS>>\n[/INST]\n"
 var instruction = 'WATSONX_INSTRUCTION' in process.env ? process.env.WATSONX_INSTRUCTION : '';
 instruction = instruction.split( "\\n" ).join( "\n" );
-var user_input = "[User] "
-var answer_output = "\n[Friendly Assistant] \n"
+var pre_input = 'WATSONX_PRE_INPUT' in process.env ? process.env.WATSONX_PRE_INPUT : '';
+pre_input = pre_input.split( "\\n" ).join( "\n" );
+var post_input = 'WATSONX_POST_INPUT' in process.env ? process.env.WATSONX_POST_INPUT : '';
+post_input = post_input.split( "\\n" ).join( "\n" );
 
 //. env values
 var settings_ai = 'AI' in process.env ? process.env.AI : 'watsonx'; 
@@ -118,8 +120,24 @@ async function generateText( access_token, project_id, model_id, pc, input, max_
             'Accept': 'application/json'
           }
         });
-        var t = instruction + "\n[Past Conversation]\n" + pc + "\n[/Past Conversation]\n" + user_input + input + answer_output;
-        console.log( {t} );
+/* instruction = 
+[INST] <<SYS>>
+You are a friendly, respectful and honest friend. Always answer as friendly as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature. Also try to ask something for me, not try to help me.
+
+If a question does not make any sense, or is not factually coherent, tell that you don't understand that well. If you don't know the answer to a question, please don't share false information.
+
+You are an English speaker.
+If you are asked a question in Japanese, please answer that you don't understand Japanese, and if you are asked a question in English, please answer in English.
+
+The user is at beginner level of English, so please answer in easy and SHORT English sentence as much as possible. Also you don't speak so much.
+
+Have [Past Conversation] in your mind. Answer the bottom [User] section, but in about 40 words.
+</SYS>>
+[/INST]
+*/
+        //console.log( {pc} );
+        var t = instruction + "\n[Past Conversation]\n" + pc + "\n[/Past Conversation]\n" + pre_input + input + post_input;
+        //console.log( {t} );
         var data = {
           'model_id': model_id,
           'input': t, //instruction + "\n[Past Conversation]\n" + pc + "\n[/Past Conversation]\n" + user_input + input + answer_output,
@@ -207,7 +225,7 @@ const progressingChatCompletion = async ( option ) => {
 
 app.post( '/api/generate_text', async function( req, res ){
   res.contentType( 'application/json; charset=utf-8' );
-  console.log( req.body );
+  //console.log( req.body );
 
   var ai = req.body.ai ? req.body.ai : settings_ai;
   var input = req.body.input;
@@ -233,26 +251,43 @@ app.post( '/api/generate_text', async function( req, res ){
                 generated_text = tmp[0];
               }
 
+              var n = generated_text.indexOf( '[Friendly Assistant]' );
+              if( n > -1 ){
+                generated_text = generated_text.substr( n + 20 );
+              }
+              n = generated_text.indexOf( '[/Friendly Assistant]' );
+              if( n > -1 ){
+                generated_text = generated_text.substr( 0, n );
+              }
+
+              console.log( {generated_text} );
+
               res.write( JSON.stringify( { status: true, generated_text: generated_text }, null, 2 ) );
               res.end();
             }else{
-              res.status( 400 )
-              res.write( JSON.stringify( { status: false, error: 'no generated_text found.' }, null, 2 ) );
+              //res.status( 400 )
+              //res.write( JSON.stringify( { status: false, error: 'no generated_text found.' }, null, 2 ) );
+              res.write( JSON.stringify( { status: true, generated_text: 'no generated text found.' }, null, 2 ) );
               res.end();
             }
           }else{
-            res.status( 400 )
-            res.write( JSON.stringify( { status: false, error: result.err }, null, 2 ) );
+            //res.status( 400 )
+            //res.write( JSON.stringify( { status: false, error: result.err }, null, 2 ) );
+            console.log( result.err );
+            res.write( JSON.stringify( { status: true, generated_text: 'sorry. it seems like failed to generate text.' }, null, 2 ) );
             res.end();
           }
         }else{
-          res.status( 400 )
-          res.write( JSON.stringify( { status: false, error: result0.error }, null, 2 ) );
+          //res.status( 400 )
+          //res.write( JSON.stringify( { status: false, error: result0.error }, null, 2 ) );
+          console.log( result0.error );
+          res.write( JSON.stringify( { status: true, generated_text: 'sorry. it seems like failed to get access token.' }, null, 2 ) );
           res.end();
         }
       }else{
-        res.status( 400 )
-        res.write( JSON.stringify( { status: false, error: 'Parameter apikey, project_id, model_id, input, and max_new_tokens are all mandatory.' }, null, 2 ) );
+        //res.status( 400 )
+        //res.write( JSON.stringify( { status: false, error: 'Parameter apikey, project_id, model_id, input, and max_new_tokens are all mandatory.' }, null, 2 ) );
+        res.write( JSON.stringify( { status: true, generated_text: 'Oh, you need to specify credential parameter. For example, apikey, project id, model id, and input text.' }, null, 2 ) );
         res.end();
       }
 
@@ -304,8 +339,9 @@ app.post( '/api/generate_text', async function( req, res ){
         if( err.result && err.result.response && err.result.response.data && err.result.response.data.error && err.result.response.data.error.message ){
           status_text += '. ' + err.result.response.data.error.message;
         }
-        res.status( status_code )
-        res.write( JSON.stringify( { status: false, error: status_text }, null, 2 ) );
+        //res.status( status_code )
+        //res.write( JSON.stringify( { status: false, error: status_text }, null, 2 ) );
+        res.write( JSON.stringify( { status: true, generated_text: status_text }, null, 2 ) );
         res.end();
       }
 
@@ -313,8 +349,9 @@ app.post( '/api/generate_text', async function( req, res ){
     }
   }catch( err ){
     console.log( {err} );
-    res.status( 400 )
-    res.write( JSON.stringify( { status: false, error: err }, null, 2 ) );
+    //res.status( 400 )
+    //res.write( JSON.stringify( { status: false, error: err }, null, 2 ) );
+    res.write( JSON.stringify( { status: true, generated_text: 'Sorry. Unknwn error detected.' }, null, 2 ) );
     res.end();
   }
 });
