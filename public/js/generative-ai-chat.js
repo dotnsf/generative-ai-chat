@@ -3,7 +3,14 @@ var flag_debug = false;
 
 var flag_editable = false;
 
+var langs = {
+  en: { recognition_lang: 'en', uttr_lang: 'en-US' },
+  ja: { recognition_lang: 'ja', uttr_lang: 'ja-JP' }
+};
+
 function vr_function(){
+  var lang = $('#langs').val();
+
   $('#start_btn').removeClass( 'btn-primary btn-warning' );
   $('#start_btn').addClass( 'btn-danger' );
   $('#start_btn').val( '<i class="fas fa-microphone"></i>' );
@@ -11,7 +18,7 @@ function vr_function(){
   //. https://developer.mozilla.org/ja/docs/Web/API/SpeechRecognition
   window.SpeechRecognition = window.SpeechRecognition || webkitSpeechRecognition;
   var recognition = new SpeechRecognition(); //webkitSpeechRecognition();
-  recognition.lang = 'en'; //'ja';
+  recognition.lang = langs[lang].recognition_lang; //'en', 'ja'
   recognition.interimResults = false;
   recognition.continuous = false;
 
@@ -156,7 +163,8 @@ function speechText( text ){
 
     uttr = new SpeechSynthesisUtterance();
     uttr.text = text;
-    uttr.lang = 'en-US'; //'ja-JP';
+    var lang = 'en'; //$('#langs').val();  //because AI would be respond in English only.
+    uttr.lang = langs[lang].uttr_lang; //. 'en-US', 'ja-JP';
 
     $('#start_btn').removeClass( 'btn-primary btn-danger' );
     $('#start_btn').addClass( 'btn-warning' );
