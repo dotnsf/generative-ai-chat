@@ -79,24 +79,34 @@ function AiChat( text ){
   var obj = getBusyOverlay( 'viewport', { color:'black', opacity:0.5, text:'thinking..', style:'text-decoration:blink;font-weight:bold;font-size:12px;color:white' } );
   //var ai = $('#ai-type').val();
   var model_id = $('#model_id').val();
-  var ai = ( model_id == 'gpt-3.5-turbo-instruct' ) ? 'openai' : 'watsonx';
+  var ai = ( model_id == 'gpt-3.5-turbo-instruct' || model_id == 'dall-e-3' ) ? 'openai' : 'watsonx';
   $.ajax({
     type: 'POST',
     url: '/api/generate_text',
     data: { pc: conversation, input: text, ai: ai, model_id: model_id },
     success: function( result ){
-      //conversation += "[User] " + text + "\n";
-      conversation += "[User] " + text + " [/User]\n";
-      obj.remove();
-      obj = null;
-      //console.log( { result } );
-      if( result && result.status ){
-        var ai_text = result.generated_text;
-        //conversation += "[Friendly Assistant]" + ai_text + "\n";
-        conversation += "[Friendly Assistant] " + ai_text + " [/Friendly Assistant]\n";
-        if( ai_text ){
-          $('#result_texts').append( '<div class="balloon-r">' + ai_text + '</div>' );
-          speechText( ai_text );
+      if( model_id != 'dall-e-3' ){
+        //conversation += "[User] " + text + "\n";
+        conversation += "[User] " + text + " [/User]\n";
+        obj.remove();
+        obj = null;
+        //console.log( { result } );
+        if( result && result.status ){
+          var ai_text = result.generated_text;
+          //conversation += "[Friendly Assistant]" + ai_text + "\n";
+          conversation += "[Friendly Assistant] " + ai_text + " [/Friendly Assistant]\n";
+          if( ai_text ){
+            $('#result_texts').append( '<div class="balloon-r">' + ai_text + '</div>' );
+            speechText( ai_text );
+          }
+        }
+      }else{
+        obj.remove();
+        obj = null;
+        if( result && result.status ){
+          var image_url = result.generated_text;
+          var img = '<img src="' + image_url + '" width="90%"/>';
+          $('#result_texts').append( '<div class="balloon-r">' + img + '</div>' );
         }
       }
     },
