@@ -294,80 +294,85 @@ app.post( '/api/generate_text', async function( req, res ){
       break;
     case 'openai':
       var apikey = ( req.body.apikey ? req.body.apikey : settings_openai_apikey );
-      //var organization = ( req.body.organization ? req.body.organization : settings_openai_organization );
-      //var configuration = new Configuration({ apiKey: apikey, organization: organization });
-      openai = new OpenAI( { apiKey: apikey } );
+      if( apikey ){
+        //var organization = ( req.body.organization ? req.body.organization : settings_openai_organization );
+        //var configuration = new Configuration({ apiKey: apikey, organization: organization });
+        openai = new OpenAI( { apiKey: apikey } );
 
-      //var model = ( req.body.model ? req.body.model : 'text-davinci-003' );
-      var model_id = ( req.body.model_id ? req.body.model_id : settings_openai_model_id );
-      //var prompt = req.body.prompt;
+        //var model = ( req.body.model ? req.body.model : 'text-davinci-003' );
+        var model_id = ( req.body.model_id ? req.body.model_id : settings_openai_model_id );
+        //var prompt = req.body.prompt;
 
-      switch( model_id ){
-      case 'gpt-3.5-turbo-instruct':
-        var option = {
-          model: model_id,
-          prompt: input,
-          max_tokens: max_new_tokens
-        };
-        if( req.body.temperature ){
-          option.temperature = parseFloat( req.body.temperature );
-        }
-        if( req.body.top_p ){
-          option.top_p = parseFloat( req.body.top_p );
-        }
-        if( req.body.n ){
-          option.n = parseInt( req.body.n );
-        }
-
-        try{
-          //var result = await openai.createCompletion( option );
-          var result = await callWithProgress( progressingCompletion, option, 5 ); //. #1
-          var answer = result.data.choices[0].text;
-  
-          //. 最初の "\n\n" 以降が正しい回答？
-          var tmp = answer.split( "\n\n" );
-          if( tmp.length > 1 && tmp[0].length < IGNORE_PHRASE ){
-            tmp.shift();
-            answer = tmp.join( "\n\n" );
+        switch( model_id ){
+        case 'gpt-3.5-turbo-instruct':
+          var option = {
+            model: model_id,
+            prompt: input,
+            max_tokens: max_new_tokens
+          };
+          if( req.body.temperature ){
+            option.temperature = parseFloat( req.body.temperature );
           }
-  
-          res.write( JSON.stringify( { status: true, generated_text: answer }, null, 2 ) );
-          res.end();
-        }catch( err ){
-          //console.log( {err} );
-          //console.log( err.result.response );
-          var status_code = ( err.response && err.response.status ? err.response.status : ( err.result && err.result.response && err.result.response.status ? err.result.response.status : 400 ) ); //. #1
-          var status_text = ( err.response && err.response.statusText ? err.response.statusText : ( err.result && err.result.response && err.result.response.statusText ? err.result.response.statusText : 'unknown error' ) );
-          if( err.result && err.result.response && err.result.response.data && err.result.response.data.error && err.result.response.data.error.message ){
-            status_text += '. ' + err.result.response.data.error.message;
+          if( req.body.top_p ){
+            option.top_p = parseFloat( req.body.top_p );
           }
-          //res.status( status_code )
-          //res.write( JSON.stringify( { status: false, error: status_text }, null, 2 ) );
-          res.write( JSON.stringify( { status: true, generated_text: status_text }, null, 2 ) );
-          res.end();
-        }
-        break;
+          if( req.body.n ){
+            option.n = parseInt( req.body.n );
+          }
 
-      case 'dall-e-3':
-        var option = {
-          model: model_id,
-          prompt: input,
-          response_format: 'url'
-        };
-        var result = await openai.images.generate( option );
-        if( result && result.data && result.data[0] ){
-          res.write( JSON.stringify( { status: true, generated_text: result.data[0].url }, null, 2 ) );
-          res.end();
-        }else{
-          res.write( JSON.stringify( { status: true, generated_text: '' }, null, 2 ) );
-          res.end();
-        }
-        break;
+          try{
+            //var result = await openai.createCompletion( option );
+            var result = await callWithProgress( progressingCompletion, option, 5 ); //. #1
+            var answer = result.data.choices[0].text;
+  
+            //. 最初の "\n\n" 以降が正しい回答？
+            var tmp = answer.split( "\n\n" );
+            if( tmp.length > 1 && tmp[0].length < IGNORE_PHRASE ){
+              tmp.shift();
+              answer = tmp.join( "\n\n" );
+            }
+    
+            res.write( JSON.stringify( { status: true, generated_text: answer }, null, 2 ) );
+            res.end();
+          }catch( err ){
+            //console.log( {err} );
+            //console.log( err.result.response );
+            var status_code = ( err.response && err.response.status ? err.response.status : ( err.result && err.result.response && err.result.response.status ? err.result.response.status : 400 ) ); //. #1
+            var status_text = ( err.response && err.response.statusText ? err.response.statusText : ( err.result && err.result.response && err.result.response.statusText ? err.result.response.statusText : 'unknown error' ) );
+            if( err.result && err.result.response && err.result.response.data && err.result.response.data.error && err.result.response.data.error.message ){
+              status_text += '. ' + err.result.response.data.error.message;
+            }
+            //res.status( status_code )
+            //res.write( JSON.stringify( { status: false, error: status_text }, null, 2 ) );
+            res.write( JSON.stringify( { status: true, generated_text: status_text }, null, 2 ) );
+            res.end();
+          }
+          break;
 
-      default:
-        res.write( JSON.stringify( { status: true, generated_text: "sorry, we can't find that model: " + model_id }, null, 2 ) );
+        case 'dall-e-3':
+          var option = {
+            model: model_id,
+            prompt: input,
+            response_format: 'url'
+          };
+          var result = await openai.images.generate( option );
+          if( result && result.data && result.data[0] ){
+            res.write( JSON.stringify( { status: true, generated_text: result.data[0].url }, null, 2 ) );
+            res.end();
+          }else{
+            res.write( JSON.stringify( { status: true, generated_text: '' }, null, 2 ) );
+            res.end();
+          }
+          break;
+
+        default:
+          res.write( JSON.stringify( { status: true, generated_text: "sorry, we can't find that model: " + model_id }, null, 2 ) );
+          res.end();
+          break;
+        }
+      }else{
+        res.write( JSON.stringify( { status: true, generated_text: 'Oh, you need to specify credential parameter: apikey.' }, null, 2 ) );
         res.end();
-        break;
       }
 
       break;
